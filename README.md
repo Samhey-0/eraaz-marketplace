@@ -6,9 +6,12 @@ A full-featured **multi-vendor e-commerce platform** built with Laravel, designe
 ## 📸 Screenshots
 
  ![Homepage](Screenshots/Dashboard.png)
-* Product Listing
-* Vendor Dashboard
-* Admin Panel
+ ![ProductListing](Screenshots/Vendordash.png)
+ ![VendorDashboard](Screenshots/AddProduct.png)
+ ![AdminPanel](Screenshots/admindash.png)
+ ![AdminPanel](Screenshots/admincon.png)
+  ![AdminPanel](Screenshots/products.png)
+  ![AdminPanel](Screenshots/Customer.png)
 ## 🚀 Overview
 
 Eraaz Marketplace enables multiple vendors to sell products on a single platform while providing customers with a smooth shopping experience and admins with complete system control.

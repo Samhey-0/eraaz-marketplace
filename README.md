@@ -5,7 +5,7 @@ A full-featured **multi-vendor e-commerce platform** built with Laravel, designe
 ---
 ## 📸 Screenshots
 
-* Homepage [Screenshots/Dashboard.png]
+ ![Homepage](Screenshots/Dashboard.png)
 * Product Listing
 * Vendor Dashboard
 * Admin Panel

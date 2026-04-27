@@ -75,7 +75,7 @@
                         <div class="product-card card h-100" id="product-{{ $product->id }}">
                             <div class="image-wrapper">
                                 @if($product->image)
-                                    <img src="{{ asset('storage/' . $product->image) }}" class="product-image" alt="{{ $product->name }}">
+                                    <img src="{{ asset('storage/' . $product->image) }}" class="product-image" alt="{{ $product->name }}" loading="lazy">
                                 @else
                                     <div class="product-image d-flex align-items-center justify-content-center bg-light">
                                         <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>

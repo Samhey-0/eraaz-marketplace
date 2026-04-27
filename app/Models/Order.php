@@ -16,6 +16,8 @@ class Order extends Model
         'user_id',
         'total_amount',
         'status',
+        'payment_status',
+        'stripe_payment_intent',
         'shipping_name',
         'shipping_email',
         'shipping_phone',

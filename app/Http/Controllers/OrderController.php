@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Notifications\OrderPlacedNotification;
+use App\Models\CartItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Stripe\Stripe;
+use Stripe\Checkout\Session;
 
 class OrderController extends Controller
 {
@@ -69,62 +72,49 @@ class OrderController extends Controller
             }
         }
 
-        try {
-            DB::beginTransaction();
+        // Create pending order first
+        $order = Order::create([
+            'order_number' => Order::generateOrderNumber(),
+            'user_id' => auth()->id(),
+            'total_amount' => $cart->total,
+            'status' => 'pending',
+            'payment_status' => 'unpaid',
+            'shipping_name' => $request->shipping_name,
+            'shipping_email' => $request->shipping_email,
+            'shipping_phone' => $request->shipping_phone,
+            'shipping_address' => $request->shipping_address,
+            'shipping_city' => $request->shipping_city,
+            'shipping_zip' => $request->shipping_zip,
+            'notes' => $request->notes,
+        ]);
 
-            // Create order
-            $order = Order::create([
-                'order_number' => Order::generateOrderNumber(),
-                'user_id' => auth()->id(),
-                'total_amount' => $cart->total,
-                'status' => 'pending',
-                'shipping_name' => $request->shipping_name,
-                'shipping_email' => $request->shipping_email,
-                'shipping_phone' => $request->shipping_phone,
-                'shipping_address' => $request->shipping_address,
-                'shipping_city' => $request->shipping_city,
-                'shipping_zip' => $request->shipping_zip,
-                'notes' => $request->notes,
-            ]);
+        // Create Stripe Checkout Session
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-            // Create order items and reduce stock
-            foreach ($cart->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'vendor_id' => $item->product->vendor_id,
-                    'product_name' => $item->product->name,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'subtotal' => $item->price * $item->quantity,
-                    'status' => 'pending',
-                ]);
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'pkr',
+                    'product_data' => [
+                        'name' => 'Order #' . $order->order_number,
+                    ],
+                    'unit_amount' => (int) ($cart->total * 100), // Stripe in cents
+                ],
+                'quantity' => 1,
+            ]],
+            'mode' => 'payment',
+            'success_url' => route('checkout.success', $order->id) . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('checkout.cancel'),
+            'metadata' => [
+                'order_id' => $order->id,
+            ],
+        ]);
 
-                // Reduce stock
-                $item->product->decrement('stock', $item->quantity);
-            }
+        // Save stripe ID
+        $order->update(['stripe_payment_intent' => $session->payment_intent]);
 
-            // Clear cart
-            $cart->items()->delete();
-
-            // Calculate commissions and vendor earnings
-            app(\App\Services\CommissionService::class)->calculateForOrder($order);
-
-            DB::commit();
-
-            // Send notification
-            try {
-                auth()->user()->notify(new OrderPlacedNotification($order));
-            } catch (\Exception $e) {
-                // Don't fail order if notification fails
-            }
-
-            return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully! Order #' . $order->order_number);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to place order. Please try again.');
-        }
+        return redirect($session->url);
     }
 
     /**
